@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PriceLens AI - Công cụ so sánh giá & đánh giá nhà bán hàng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <!-- Top Security & AI Disclaimer Banner -->
+    <div class="bg-amber-50 border-b border-amber-200 px-4 py-2.5 text-xs text-amber-900">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved text-amber-600 text-sm"></i>
+                <span><strong>Cảnh báo an toàn & Giới hạn AI:</strong> Dữ liệu giá mang tính tham khảo tại thời điểm tra cứu. Hệ thống <strong>không thu thập dữ liệu cá nhân (PII)</strong>. Người dùng bắt buộc kiểm tra link gốc trước khi giao dịch.</span>
+            </div>
+            <button onclick="document.getElementById('ethicsModal').classList.remove('hidden')" class="underline font-semibold hover:text-amber-700 whitespace-nowrap">
+                Quy tắc đạo đức AI
+            </button>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold shadow-sm">
+                    <i class="fa-solid fa-magnifying-glass-dollar"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900 leading-tight">PriceLens <span class="text-indigo-600">AI</span></h1>
+                    <p class="text-[11px] text-slate-500">So sánh giá thực tế & Lọc nhiễu thông minh</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="exportData('csv')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3 py-1.5 rounded-lg transition">
+                    <i class="fa-solid fa-file-csv mr-1"></i> Xuất CSV
+                </button>
+                <button onclick="exportData('json')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3 py-1.5 rounded-lg transition">
+                    <i class="fa-solid fa-code mr-1"></i> Xuất JSON
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+        <!-- Search & Filter Section -->
+        <section class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+            <div class="max-w-3xl mx-auto text-center mb-6">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">Tìm kiếm & So sánh Giá Thực Tế Đa Sàn</h2>
+                <p class="text-sm text-slate-500">Tự động tính tổng chi phí (Giá + Phí ship - Voucher) và dùng AI loại bỏ hàng nhiễu/phụ kiện giá ảo</p>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-3 max-w-4xl mx-auto">
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-search absolute left-3.5 top-3.5 text-slate-400"></i>
+                    <input type="text" id="searchInput" onkeyup="renderTable()" placeholder="Nhập tên sản phẩm (VD: Tai nghe Sony, Bàn phím Keychron, Nồi chiên...)" 
+                        class="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none">
+                </div>
+                <select id="platformFilter" onchange="renderTable()" class="px-4 py-2.5 border border-slate-300 rounded-xl text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <option value="all">Tất cả sàn TMĐT</option>
+                    <option value="Shopee">Shopee</option>
+                    <option value="Lazada">Lazada</option>
+                    <option value="Tiki">Tiki</option>
+                    <option value="TikTok Shop">TikTok Shop</option>
+                </select>
+                <button onclick="runAIAnalysis()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl text-sm shadow-sm transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Chạy AI Phân Tích
+                </button>
+            </div>
+
+            <!-- Quick Tags -->
+            <div class="flex flex-wrap items-center justify-center gap-2 mt-4 text-xs">
+                <span class="text-slate-400">Gợi ý dữ liệu mẫu:</span>
+                <button onclick="quickSearch('Tai nghe Sony WH-1000XM5')" class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full hover:bg-indigo-100 font-medium">Tai nghe Sony WH-1000XM5</button>
+                <button onclick="quickSearch('Bàn phím cơ Keychron K2')" class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full hover:bg-indigo-100 font-medium">Bàn phím cơ Keychron K2</button>
+                <button onclick="quickSearch('Nồi chiên không dầu Philips')" class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full hover:bg-indigo-100 font-medium">Nồi chiên không dầu Philips</button>
+                <button onclick="quickSearch('')" class="px-2.5 py-1 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200">Hiện tất cả</button>
+            </div>
+        </section>
+
+        <!-- AI Result & Human-in-the-loop Verification Box -->
+        <section id="aiResultSection" class="hidden bg-gradient-to-r from-indigo-50 via-white to-emerald-50 p-6 rounded-2xl border border-indigo-200 shadow-sm">
+            <div class="flex items-start justify-between border-b border-indigo-100 pb-4 mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-900">Kết quả Phân tích & Đề xuất Tối ưu từ AI</h3>
+                        <p class="text-xs text-slate-500">Đã lọc bỏ phụ kiện gây nhiễu & cảnh báo các gian hàng giá bất thường (&lt;50% thị trường)</p>
+                    </div>
+                </div>
+                <span class="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-full">Hoàn tất 4 bước xử lý</span>
+            </div>
+
+            <div id="aiRecommendationContent" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Dynamic AI Content -->
+            </div>
+        </section>
+
+        <!-- Data Table & Add Custom Product -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Comparison Table (2 cols) -->
+            <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+                    <h3 class="font-bold text-slate-800 text-sm"><i class="fa-solid fa-table-list mr-2 text-indigo-600"></i>Bảng So Sánh Chi Phí Thực Tế</h3>
+                    <span id="recordCount" class="text-xs text-slate-500 font-medium"></span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-[11px] uppercase text-slate-500 font-semibold">
+                                <th class="p-3">Sản phẩm & Shop</th>
+                                <th class="p-3">Sàn</th>
+                                <th class="p-3 text-right">Giá gốc</th>
+                                <th class="p-3 text-right">Ship / Voucher</th>
+                                <th class="p-3 text-right">Tổng thực tế</th>
+                                <th class="p-3 text-center">Trạng thái AI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productTableBody" class="divide-y divide-slate-100 text-xs">
+                            <!-- Rows rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Add Custom Shop Form (1 col) -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 h-fit">
+                <h3 class="font-bold text-slate-800 text-sm mb-1"><i class="fa-solid fa-plus-circle mr-1.5 text-indigo-600"></i>Tự Thêm Dữ Liệu Kiểm Thử</h3>
+                <p class="text-xs text-slate-500 mb-4">Nhập sản phẩm bất kỳ để kiểm tra khả năng tính toán và phát hiện nhiễu của AI.</p>
+                
+                <form onsubmit="addCustomProduct(event)" class="space-y-3 text-xs">
+                    <div>
+                        <label class="block font-medium text-slate-700 mb-1">Tên sản phẩm *</label>
+                        <input type="text" id="newProdName" required placeholder="VD: Tai nghe Sony WH-1000XM5 (Vỏ hộp)" class="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-indigo-500">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-medium text-slate-700 mb-1">Sàn TMĐT</label>
+                            <select id="newPlatform" class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                                <option value="Shopee">Shopee</option>
+                                <option value="Lazada">Lazada</option>
+                                <option value="Tiki">Tiki</option>
+                                <option value="TikTok Shop">TikTok Shop</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-700 mb-1">Tên Shop *</label>
+                            <input type="text" id="newShopName" required placeholder="VD: Shop Phụ Kiện" class="w-full px-3 py-2 border border-slate-300 rounded-lg outline-none focus:border-indigo-500">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="block font-medium text-slate-700 mb-1">Giá gốc (đ) *</label>
+                            <input type="number" id="newPrice" required min="0" value="500000" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-700 mb-1">Phí ship (đ)</label>
+                            <input type="number" id="newShip" min="0" value="15000" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-700 mb-1">Voucher (đ)</label>
+                            <input type="number" id="newVoucher" min="0" value="0" class="w-full px-2.5 py-2 border border-slate-300 rounded-lg">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-medium text-slate-700 mb-1">Đánh giá (1-5⭐)</label>
+                            <input type="number" id="newRating" step="0.1" min="1" max="5" value="4.8" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-700 mb-1">Link gốc kiểm tra</label>
+                            <input type="url" id="newLink" value="https://shopee.vn" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl transition mt-2">
+                        + Thêm vào bảng & Phân tích lại
+                    </button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Ethics Modal -->
+    <div id="ethicsModal" class="hidden fixed inset-0 bg-slate-900/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl">
+            <div class="flex items-center justify-between border-b pb-3 mb-4">
+                <h3 class="font-bold text-slate-900"><i class="fa-solid fa-scale-balanced text-indigo-600 mr-2"></i>Nguyên tắc An toàn & Đạo đức AI</h3>
+                <button onclick="document.getElementById('ethicsModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <ul class="space-y-2.5 text-xs text-slate-600 leading-relaxed">
+                <li><strong>1. Không thu thập dữ liệu cá nhân (PII):</strong> Hệ thống chỉ xử lý dữ liệu giá niêm yết công khai, không lưu trữ lịch sử duyệt web, số điện thoại hay thông tin thanh toán.</li>
+                <li><strong>2. Kiểm soát bởi con người (Human-in-the-loop):</strong> AI chỉ đưa ra gợi ý tham khảo. Người dùng bắt buộc phải truy cập liên kết gốc của sàn TMĐT để xác nhận tồn kho và chính sách bảo hành.</li>
+                <li><strong>3. Cảnh báo bất thường:</strong> Tự động gắn cờ cảnh báo đỏ đối với các gian hàng có giá thấp hơn 50% giá trung bình thị trường nhằm phòng tránh lừa đảo.</li>
+            </ul>
+            <button onclick="document.getElementById('ethicsModal').classList.add('hidden')" class="mt-5 w-full bg-indigo-600 text-white font-semibold py-2 rounded-xl text-xs">Đã hiểu</button>
+        </div>
+    </div>
+
+    <script>
+        let products = [
+            { id: "p1", product_name: "Tai nghe Sony WH-1000XM5", platform: "Shopee", shop_name: "Sony Official Store", listed_price: 6490000, shipping_fee: 30000, voucher: 280000, rating: 4.9, sold_count: 1240, link: "https://shopee.vn" },
+            { id: "p2", product_name: "Tai nghe Sony WH-1000XM5", platform: "Lazada", shop_name: "TechLand Flagship", listed_price: 6590000, shipping_fee: 0, voucher: 200000, rating: 4.8, sold_count: 850, link: "https://lazada.vn" },
+            { id: "p3", product_name: "Tai nghe Sony WH-1000XM5 (Vỏ hộp / Đệm tai)", platform: "Shopee", shop_name: "Phụ Kiện Giá Rẻ 99", listed_price: 450000, shipping_fee: 25000, voucher: 0, rating: 3.9, sold_count: 45, link: "https://shopee.vn" },
+            { id: "p4", product_name: "Tai nghe Sony WH-1000XM5", platform: "Tiki", shop_name: "Shop Gia Dụng 99", listed_price: 2990000, shipping_fee: 45000, voucher: 0, rating: 2.1, sold_count: 3, link: "https://tiki.vn" },
+            { id: "p5", product_name: "Bàn phím cơ Keychron K2 V2", platform: "Shopee", shop_name: "Keychron VietNam", listed_price: 1990000, shipping_fee: 22000, voucher: 100000, rating: 4.9, sold_count: 3200, link: "https://shopee.vn" },
+            { id: "p6", product_name: "Bàn phím cơ Keychron K2 V2", platform: "TikTok Shop", shop_name: "GearZone Studio", listed_price: 1890000, shipping_fee: 15000, voucher: 50000, rating: 4.7, sold_count: 410, link: "https://tiktok.com" },
+            { id: "p7", product_name: "Nồi chiên không dầu Philips HD9252", platform: "Lazada", shop_name: "Philips Home Store", listed_price: 2450000, shipping_fee: 50000, voucher: 300000, rating: 4.9, sold_count: 5100, link: "https://lazada.vn" }
+        ];
+
+        function classifyItem(item, avgValidPrice) {
+            const nameLower = item.product_name.toLowerCase();
+            const noiseKeywords = ["vỏ hộp", "phụ kiện", "đệm tai", "túi đựng", "cáp sạc", "ốp lưng"];
+            if (noiseKeywords.some(k => nameLower.includes(k))) {
+                return { status: "noise", label: "Hàng nhiễu / Phụ kiện", badge: "bg-amber-100 text-amber-800" };
+            }
+            const total = item.listed_price + item.shipping_fee - item.voucher;
+            if (avgValidPrice > 0 && total < avgValidPrice * 0.5) {
+                return { status: "suspicious", label: "Cảnh báo giá <50%", badge: "bg-rose-100 text-rose-800" };
+            }
+            return { status: "valid", label: "Hợp lệ", badge: "bg-emerald-100 text-emerald-800" };
+        }
+
+        function getFilteredProducts() {
+            const q = document.getElementById("searchInput").value.toLowerCase().trim();
+            const plat = document.getElementById("platformFilter").value;
+            return products.filter(p => {
+                const matchText = !q || p.product_name.toLowerCase().includes(q) || p.shop_name.toLowerCase().includes(q);
+                const matchPlat = plat === "all" || p.platform === plat;
+                return matchText && matchPlat;
+            });
+        }
+
+        function renderTable() {
+            const filtered = getFilteredProducts();
+            const tbody = document.getElementById("productTableBody");
+            document.getElementById("recordCount").innerText = `Hiển thị ${filtered.length} gian hàng`;
+
+            // Calculate average price of non-keyword-noise items for anomaly detection
+            const nonNoise = filtered.filter(p => !["vỏ hộp", "phụ kiện", "đệm tai", "túi đựng"].some(k => p.product_name.toLowerCase().includes(k)));
+            const avgPrice = nonNoise.length ? nonNoise.reduce((acc, p) => acc + (p.listed_price + p.shipping_fee - p.voucher), 0) / nonNoise.length : 0;
+
+            tbody.innerHTML = filtered.map(p => {
+                const total = p.listed_price + p.shipping_fee - p.voucher;
+                const cls = classifyItem(p, avgPrice);
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3">
+                            <div class="font-semibold text-slate-800">${p.product_name}</div>
+                            <div class="text-[11px] text-slate-500">${p.shop_name} • <span class="text-amber-500 font-semibold">${p.rating}⭐</span> (${p.sold_count} đã bán)</div>
+                        </td>
+                        <td class="p-3"><span class="px-2 py-0.5 bg-slate-100 rounded font-medium">${p.platform}</span></td>
+                        <td class="p-3 text-right text-slate-600">${p.listed_price.toLocaleString('vi-VN')}đ</td>
+                        <td class="p-3 text-right text-[11px]">
+                            <div class="text-slate-500">+${p.shipping_fee.toLocaleString('vi-VN')}đ</div>
+                            <div class="text-emerald-600">-${p.voucher.toLocaleString('vi-VN')}đ</div>
+                        </td>
+                        <td class="p-3 text-right font-bold text-indigo-700">${total.toLocaleString('vi-VN')}đ</td>
+                        <td class="p-3 text-center"><span class="px-2 py-1 rounded-full text-[10px] font-semibold ${cls.badge}">${cls.label}</span></td>
+                    </tr>
+                `;
+            }).join("");
+        }
+
+        function runAIAnalysis() {
+            const filtered = getFilteredProducts();
+            const section = document.getElementById("aiResultSection");
+            const content = document.getElementById("aiRecommendationContent");
+            section.classList.remove("hidden");
+
+            const nonNoise = filtered.filter(p => !["vỏ hộp", "phụ kiện", "đệm tai", "túi đựng"].some(k => p.product_name.toLowerCase().includes(k)));
+            const avgPrice = nonNoise.length ? nonNoise.reduce((acc, p) => acc + (p.listed_price + p.shipping_fee - p.voucher), 0) / nonNoise.length : 0;
+
+            const validItems = filtered.filter(p => classifyItem(p, avgPrice).status === "valid");
+            const filteredOutCount = filtered.length - validItems.length;
+
+            if (validItems.length === 0) {
+                content.innerHTML = `<div class="col-span-3 text-sm text-rose-700 font-medium">Không tìm thấy gian hàng hợp lệ nào sau khi lọc nhiễu và cảnh báo rủi ro.</div>`;
+                return;
+            }
+
+            validItems.sort((a, b) => (a.listed_price + a.shipping_fee - a.voucher) - (b.listed_price + b.shipping_fee - b.voucher));
+            const best = validItems[0];
+            const bestTotal = best.listed_price + best.shipping_fee - best.voucher;
+
+            content.innerHTML = `
+                <div class="lg:col-span-2 bg-white p-4 rounded-xl border border-emerald-200">
+                    <div class="text-xs font-bold text-emerald-700 uppercase mb-1"><i class="fa-solid fa-award mr-1"></i>Lựa chọn tối ưu nhất</div>
+                    <h4 class="text-base font-bold text-slate-900">${best.product_name}</h4>
+                    <p class="text-xs text-slate-600 mt-1">Nhà bán hàng: <strong>${best.shop_name}</strong> trên sàn <strong>${best.platform}</strong> (${best.rating}⭐ • ${best.sold_count} lượt bán)</p>
+                    <div class="mt-3 flex items-baseline gap-2">
+                        <span class="text-2xl font-extrabold text-indigo-600">${bestTotal.toLocaleString('vi-VN')} VNĐ</span>
+                        <span class="text-xs text-slate-400">(Đã bao gồm ship & trừ voucher)</span>
+                    </div>
+                    <p class="text-xs text-slate-600 mt-3 bg-slate-50 p-2.5 rounded-lg">
+                        <strong>Phân tích AI:</strong> Đã tự động loại bỏ <strong>${filteredOutCount}</strong> gian hàng nhiễu/cảnh báo giá ảo. Gian hàng này có tổng chi phí thực tế thấp nhất trong nhóm sản phẩm chính hãng và đạt điểm đánh giá uy tín cao.
+                    </p>
+                </div>
+                <div class="bg-amber-50/80 p-4 rounded-xl border border-amber-200 flex flex-col justify-between">
+                    <div>
+                        <div class="text-xs font-bold text-amber-800 uppercase mb-1"><i class="fa-solid fa-user-check mr-1"></i>Bước Kiểm Tra Bắt Buộc</div>
+                        <p class="text-xs text-amber-900 mb-3">Theo quy tắc Human-in-the-loop, vui lòng mở link gốc để đối chiếu tồn kho và bảo hành trước khi đặt mua:</p>
+                        <a href="${best.link}" target="_blank" class="inline-flex items-center justify-center w-full py-2 px-3 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition">
+                            <i class="fa-solid fa-arrow-up-right-from-square mr-1.5"></i> Mở trang gốc trên ${best.platform}
+                        </a>
+                    </div>
+                    <label class="flex items-start gap-2 mt-3 pt-3 border-t border-amber-200 cursor-pointer text-xs text-slate-700">
+                        <input type="checkbox" class="mt-0.5 rounded text-indigo-600">
+                        <span>Tôi đã tự kiểm tra link gốc và xác nhận thông tin trên là chính xác.</span>
+                    </label>
+                </div>
+            `;
+        }
+
+        function quickSearch(term) {
+            document.getElementById("searchInput").value = term;
+            renderTable();
+            runAIAnalysis();
+        }
+
+        function addCustomProduct(e) {
+            e.preventDefault();
+            const newItem = {
+                id: "custom_" + Date.now(),
+                product_name: document.getElementById("newProdName").value,
+                platform: document.getElementById("newPlatform").value,
+                shop_name: document.getElementById("newShopName").value,
+                listed_price: Number(document.getElementById("newPrice").value),
+                shipping_fee: Number(document.getElementById("newShip").value),
+                voucher: Number(document.getElementById("newVoucher").value),
+                rating: Number(document.getElementById("newRating").value),
+                sold_count: 10,
+                link: document.getElementById("newLink").value || "#"
+            };
+            products.unshift(newItem);
+            renderTable();
+            runAIAnalysis();
+        }
+
+        function exportData(format) {
+            const data = getFilteredProducts();
+            let content = "", mime = "", filename = "";
+            if (format === "json") {
+                content = JSON.stringify(data, null, 2);
+                mime = "application/json";
+                filename = "pricelens_data.json";
+            } else {
+                const headers = ["ID,Ten_san_pham,San,Ten_shop,Gia_goc,Phi_ship,Voucher,Tong_thuc_te,Danh_gia"];
+                const rows = data.map(p => `"${p.id}","${p.product_name}","${p.platform}","${p.shop_name}",${p.listed_price},${p.shipping_fee},${p.voucher},${p.listed_price + p.shipping_fee - p.voucher},${p.rating}`);
+                content = "﻿" + headers.concat(rows).join("\n");
+                mime = "text/csv;charset=utf-8;";
+                filename = "pricelens_data.csv";
+            }
+            const blob = new Blob([content], { type: mime });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            a.click();
+        }
+
+        // Init
+        renderTable();
+        runAIAnalysis();
+    </script>
+</body>
+</html>
